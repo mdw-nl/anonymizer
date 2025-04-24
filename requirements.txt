@@ -1,0 +1,6 @@
+pydicom
+pyyaml
+pika
+pandas
+dicompyler-core
+requests
