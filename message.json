@@ -1,0 +1,6 @@
+{
+    "input_folder_path": "C:/Source/Digione/anonymizer/dicomdata",
+    "action": "anonymize",
+    "output_folder_path": "C:/Source/Digione/anonymizer/anonimsed_data",
+    "recipe_path": "c:/Source/Protrait/dvh-calculation-poc/recipe.dicom"
+  }

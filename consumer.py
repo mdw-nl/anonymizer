@@ -3,11 +3,12 @@ import logging
 import concurrent.futures
 import time
 import threading
-
+import json
 
 class Consumer:
     def __init__(self, rmq_config):
         self.connection_rmq = None
+        self.counter = 0
         self.channel = None
         self.config_dict_rmq = rmq_config.config
         self.db = None
@@ -23,12 +24,14 @@ class Consumer:
         connection = pika.BlockingConnection(pika.URLParameters(connection_string))
         self.connection_rmq = connection
         self.channel = self.connection_rmq.channel()
+        self.channel.queue_declare(queue=self.config_dict_rmq["queue_name"], durable=True)
         heartbeat_thread = threading.Thread(target=self.send_heartbeats, daemon=True)
         heartbeat_thread.start()
 
     def send_heartbeats(self):
         """Send periodic heartbeats to keep the connection alive"""
         while not self.stop_heartbeat.is_set():
+            self.counter += 1
             try:
                 logging.info("Sending heartbeat..")
                 self.connection_rmq.process_data_events()
@@ -36,10 +39,25 @@ class Consumer:
             except Exception as e:
                 print(f"Heartbeat error: {e}")
             time.sleep(10)
+            if self.counter >= 1:
+                self.channel.stop_consuming()
+
+
+    def send_message(self):
+        """Send message to queue"""
+        with open('message.json', 'r') as file:
+            data = json.load(file)
+        message_json = json.dumps(data)
+        
+        self.channel.basic_publish(
+        exchange='',
+        routing_key=self.config_dict_rmq["queue_name"],
+        body=message_json
+        )
 
     def close_connection(self):
         """Close connection"""
-
+        self.stop_heartbeat.set()
         self.connection_rmq.close()
 
     def start_consumer(self, callback):
@@ -50,7 +68,10 @@ class Consumer:
                                    auto_ack=False)
         try:
             self.channel.start_consuming()
+            time.sleep(10)
         except KeyboardInterrupt:
             print("Consumer stopped by user.")
         finally:
             self.executor.shutdown(wait=True)
+            self.channel.queue_delete(queue=self.config_dict_rmq["queue_name"])
+            self.close_connection()
