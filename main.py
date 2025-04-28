@@ -6,6 +6,7 @@ import json
 import time
 import os
 import pydicom
+import sys
 from deid.dicom import get_files, replace_identifiers
 from deid.config import DeidRecipe
 from deid.dicom import get_identifiers
@@ -32,8 +33,17 @@ def anonymize(ch, method, properties, body, executor):
     recipe_path = message_data.get('recipe_path')
     action = message_data.get('action')
     
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+        logging.warning(f"Output folder did not exist, created: {output_folder}")
+
     if action != "anonymize":
-        logging.info(f"Action {action} is not supported. Skipping message.")
+        logging.warning(f"Action {action} is not supported. Skipping message.")
+        return
+    
+    if not all([input_folder, output_folder, recipe_path]):
+        logging.error("Missing one or more required fields in message.")
+        ch.basic_nack(delivery_tag=method.delivery_tag)
         return
     
     # This removes all the files in the output folder, this is only for testing purposes
@@ -45,6 +55,10 @@ def anonymize(ch, method, properties, body, executor):
     dicom_files = list(get_files(input_folder))
     recipe = DeidRecipe(deid=recipe_path)
     
+    # Temperarily suppress stdout and stderr to avoid cluttering the console
+    sys.stdout = open(os.devnull, 'w')
+    sys.stderr = open(os.devnull, 'w')
+    
     # Update the items so it contains the generate_uid function
     items = get_identifiers(dicom_files)
     for item in items:
@@ -52,12 +66,16 @@ def anonymize(ch, method, properties, body, executor):
          
     updated = replace_identifiers(dicom_files=dicom_files, deid=recipe, ids=items)
     
-    i = 0
-    for files in dicom_files:
-        output_filename = f"anonymised_CT.PYTIM05_{i+1}.dcm"
+    for idx, dicom_obj in enumerate(updated, 1):
+        output_filename = f"anonymised_CT.PYTIM05_{idx}.dcm"
         output_path = os.path.join(output_folder, output_filename)
-        updated[i].save_as(output_path)
-        i += 1
+        dicom_obj.save_as(output_path)
+    
+    # Restore stdout and stderr  
+    sys.stdout = sys.__stdout__
+    sys.stderr = sys.__stderr__  
+    
+    logging.info(f"Anonymization completed. Files from {input_folder} are anonymized and saved to {output_folder}.")
         
     
 logging.basicConfig(
