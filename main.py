@@ -3,7 +3,6 @@ from consumer import Consumer
 import logging
 import pandas as pd
 import json
-import time
 import os
 import pydicom
 import sys
@@ -11,18 +10,14 @@ from deid.dicom import get_files, replace_identifiers
 from deid.config import DeidRecipe
 from deid.dicom import get_identifiers
 
-def custom_func(item, value, field, dicom):
-    # Get the current PatientID from the DICOM file
-    dicom_path = os.path.join("dicomdata", "RS.PYTIM05_.dcm")
-    ds = pydicom.dcmread(dicom_path)
-    PatientID = ds.PatientID
-    
-    # Create pandas dataframe from the recipe CSV file and get the new value
-    df = pd.read_csv('recipe_CSV.csv')
-    new_value = df.loc[df['original'] == PatientID, 'new'].values[0]
-    
-    return new_value
-
+def custom_func_fact(CSV_mapping):
+    df = pd.read_csv(CSV_mapping) 
+    def custom_func(item, value, field, dicom):
+        PatientID = dicom.PatientID         
+        # Get the new value
+        new_value = df.loc[df['original'] == PatientID, 'new'].values[0]              
+        return new_value
+    return custom_func
 
 def anonymize(ch, method, properties, body, executor):
     """The anonymize function that anonymizes the data, in the consumer method"""
@@ -32,14 +27,18 @@ def anonymize(ch, method, properties, body, executor):
     output_folder = message_data.get('output_folder_path')
     recipe_path = message_data.get('recipe_path')
     action = message_data.get('action')
+    recipe_CSV = message_data.get('recipe_CSV')
+    
+    if action != "anonymize":
+        logging.warning(f"Action {action} is not supported. Skipping message.")
+        ch.basic_nack(delivery_tag=method.delivery_tag)
+        return
+    
+    custom_func = custom_func_fact(recipe_CSV)
     
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
         logging.warning(f"Output folder did not exist, created: {output_folder}")
-
-    if action != "anonymize":
-        logging.warning(f"Action {action} is not supported. Skipping message.")
-        return
     
     if not all([input_folder, output_folder, recipe_path]):
         logging.error("Missing one or more required fields in message.")
@@ -67,7 +66,7 @@ def anonymize(ch, method, properties, body, executor):
     updated = replace_identifiers(dicom_files=dicom_files, deid=recipe, ids=items)
     
     for idx, dicom_obj in enumerate(updated, 1):
-        output_filename = f"anonymised_CT.PYTIM05_{idx}.dcm"
+        output_filename = f"anonymised_DICOM_{idx}.dcm"
         output_path = os.path.join(output_folder, output_filename)
         dicom_obj.save_as(output_path)
     
@@ -89,6 +88,6 @@ if __name__ == "__main__":
     rabbitMQ_config = Config("rabbitMQ")
     cons = Consumer(rmq_config=rabbitMQ_config)
     cons.open_connection_rmq()
-    cons.send_message()
+    cons.send_message("messages")
     cons.start_consumer(callback=anonymize)
 

@@ -4,6 +4,7 @@ import concurrent.futures
 import time
 import threading
 import json
+import os
 
 class Consumer:
     def __init__(self, rmq_config):
@@ -38,22 +39,25 @@ class Consumer:
                 logging.info("Heartbeat sent.")
             except Exception as e:
                 print(f"Heartbeat error: {e}")
-            time.sleep(10)
+            time.sleep(20)
             if self.counter >= 1:
                 self.channel.stop_consuming()
 
 
-    def send_message(self):
+    def send_message(self, folder_path):
         """Send message to queue"""
-        with open('message.json', 'r') as file:
-            data = json.load(file)
-        message_json = json.dumps(data)
-        
-        self.channel.basic_publish(
-        exchange='',
-        routing_key=self.config_dict_rmq["queue_name"],
-        body=message_json
-        )
+        for file in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, file)
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+            message_json = json.dumps(data)
+            
+            self.channel.basic_publish(
+            exchange='',
+            routing_key=self.config_dict_rmq["queue_name"],
+            body=message_json
+            )
+            logging.info(f"Sent message: {file}")
 
     def close_connection(self):
         """Close connection"""
