@@ -1,0 +1,10 @@
+FORMAT dicom
+
+
+%header
+REMOVE StudyDate
+BLANK SeriesDate 
+REPLACE PatientID func:custom_func
+REPLACE ReferencedFrameOfReferenceUID deid_func:pydicom_uuid prefix=1.2.826.0.1.3680043.8.498.
+
+

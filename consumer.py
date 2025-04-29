@@ -39,9 +39,9 @@ class Consumer:
                 logging.info("Heartbeat sent.")
             except Exception as e:
                 print(f"Heartbeat error: {e}")
-            time.sleep(20)
-            if self.counter >= 1:
-                self.channel.stop_consuming()
+            time.sleep(10)
+            # if self.counter >= 1:
+            #     self.channel.stop_consuming()
 
 
     def send_message(self, folder_path):

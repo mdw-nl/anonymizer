@@ -1,5 +1,5 @@
 rabbitMQ:
-  host: "localhost"
+  host: "host.docker.internal"
   port: "5672"
   username: "myuser"
   password: "mypassword"

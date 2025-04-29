@@ -6,11 +6,12 @@ import json
 import os
 import pydicom
 import sys
+import time
 from deid.dicom import get_files, replace_identifiers
 from deid.config import DeidRecipe
 from deid.dicom import get_identifiers
 
-def custom_func_fact(CSV_mapping):
+def custom_func_factory(CSV_mapping):
     df = pd.read_csv(CSV_mapping) 
     def custom_func(item, value, field, dicom):
         PatientID = dicom.PatientID         
@@ -31,19 +32,14 @@ def anonymize(ch, method, properties, body, executor):
     
     if action != "anonymize":
         logging.warning(f"Action {action} is not supported. Skipping message.")
-        ch.basic_nack(delivery_tag=method.delivery_tag)
+        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
         return
     
-    custom_func = custom_func_fact(recipe_CSV)
+    custom_func = custom_func_factory(recipe_CSV)
     
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
         logging.warning(f"Output folder did not exist, created: {output_folder}")
-    
-    if not all([input_folder, output_folder, recipe_path]):
-        logging.error("Missing one or more required fields in message.")
-        ch.basic_nack(delivery_tag=method.delivery_tag)
-        return
     
     # This removes all the files in the output folder, this is only for testing purposes
     for filename in os.listdir(output_folder):
@@ -74,6 +70,7 @@ def anonymize(ch, method, properties, body, executor):
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__  
     
+    ch.basic_ack(delivery_tag=method.delivery_tag)
     logging.info(f"Anonymization completed. Files from {input_folder} are anonymized and saved to {output_folder}.")
         
     
