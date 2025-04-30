@@ -9,7 +9,6 @@ import os
 class Consumer:
     def __init__(self, rmq_config):
         self.connection_rmq = None
-        self.counter = 0
         self.channel = None
         self.config_dict_rmq = rmq_config.config
         self.db = None
@@ -32,7 +31,6 @@ class Consumer:
     def send_heartbeats(self):
         """Send periodic heartbeats to keep the connection alive"""
         while not self.stop_heartbeat.is_set():
-            self.counter += 1
             try:
                 logging.info("Sending heartbeat..")
                 self.connection_rmq.process_data_events()
@@ -40,8 +38,7 @@ class Consumer:
             except Exception as e:
                 print(f"Heartbeat error: {e}")
             time.sleep(10)
-            # if self.counter >= 1:
-            #     self.channel.stop_consuming()
+
 
 
     def send_message(self, folder_path):

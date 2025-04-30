@@ -27,8 +27,8 @@ services:
       - RABBITMQ_PASSWORD=mypassword
     volumes:
       - ./config.yaml:/app/config.yaml  # Mount config.yaml into the container
-      - ./anonimsed_data:/app/anonimsed_data
-      - ./anonimsed_data2:/app/anonimsed_data2
+      - ./anonimised_folder:/app/anonimised_folder
+
 
     networks:
       - app_network

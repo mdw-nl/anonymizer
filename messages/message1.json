@@ -1,7 +1,7 @@
 {
     "input_folder_path": "./dicomdata",
     "action": "anonymize",
-    "output_folder_path": "./anonimsed_data",
+    "output_folder_path": "./anonimised_folder/anonimised_data",
     "recipe_path": "./recipes/recipe.dicom",
     "recipe_CSV": "./recipes/recipe_CSV.csv"
   }
