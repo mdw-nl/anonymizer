@@ -223,6 +223,7 @@ KEEP DoseReferenceUID
 ADD PatientIdentityRemoved YES
 ADD PatientName SEDI_TEST001
 ADD PatientID func:CSV_lookup_func
+ADD DeIdentificationMethod 
 
 REPLACE InstanceCreatorUID deid_func:pydicom_uuid prefix=99999.
 REPLACE SOPInstanceUID deid_func:pydicom_uuid prefix=99999.
@@ -234,10 +235,10 @@ REPLACE SeriesInstanceUID deid_func:pydicom_uuid prefix=99999.
 REPLACE FrameOfReferenceUID deid_func:pydicom_uuid prefix=99999.
 REPLACE UID func:deid_func:pydicom_uuid prefix=99999.
 REPLACE ReferencedFrameOfReferenceUID deid_func:pydicom_uuid prefix=99999.
-REPLACE VerifyingObserverName Removed by CTP
-REPLACE PersonName Removed by CTP
 REPLACE AccessionNumber func:hash_func
 REPLACE PlacerOrderNumber func:hash_func
 REPLACE FillerOrderNumber func:hash_func
 REPLACE StructureSetLabel func:hash_func
+REPLACE VerifyingObserverName Removed by CTP
+REPLACE PersonName Removed by CTP
 
