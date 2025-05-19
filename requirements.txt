@@ -4,3 +4,4 @@ pika
 pandas
 dicompyler-core
 requests
+deid

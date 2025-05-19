@@ -1,6 +1,6 @@
 rabbitMQ:
-  host: "host.docker.internal"
+  host: "localhost"
   port: "5672"
-  username: "myuser"
-  password: "mypassword"
+  username: "guest"
+  password: "guest"
   queue_name: "DICOM_Processor"

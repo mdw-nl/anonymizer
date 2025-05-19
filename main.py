@@ -4,25 +4,66 @@ import logging
 import pandas as pd
 import json
 import os
-import pydicom
 import sys
-import time
+import hashlib
 from deid.dicom import get_files, replace_identifiers
 from deid.config import DeidRecipe
 from deid.dicom import get_identifiers
 
-def custom_func_factory(CSV_mapping):
-    df = pd.read_csv(CSV_mapping) 
-    def custom_func(item, value, field, dicom):
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger()
+
+
+def hash_func(item, value, field, dicom):
+    """Hash the input value and return a shortened version."""
+    return hashlib.md5(value.encode()).hexdigest()[:16]
+
+def patient_mapping(CSV_mapping):
+    """Returns a lookup function to map PatientIDs using a CSV file."""
+    df = pd.read_csv(CSV_mapping)
+    
+    def CSV_lookup_func(item, value, field, dicom):
         PatientID = dicom.PatientID         
-        # Get the new value
+         # Get the new value
         new_value = df.loc[df['original'] == PatientID, 'new'].values[0]              
         return new_value
-    return custom_func
+    
+    return CSV_lookup_func
 
+
+def clear_output_folder(folder_path):
+    """Delete all files in the output folder (for testing purposes)."""
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+        logger.warning(f"Output folder did not exist, created: {folder_path}")
+        return
+
+    for filename in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, filename)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+
+def suppress_output():
+    """Temporarily suppress stdout and stderr."""
+    sys.stdout = open(os.devnull, 'w')
+    sys.stderr = open(os.devnull, 'w')
+
+
+def restore_output():
+    """Restore stdout and stderr."""
+    sys.stdout = sys.__stdout__
+    sys.stderr = sys.__stderr__
+
+
+# Main anonymization logic
 def anonymize(ch, method, properties, body, executor):
-    """The anonymize function that anonymizes the data, in the consumer method"""
     message_str = body.decode("utf-8")
+    
     message_data = json.loads(message_str)
     input_folder = message_data.get('input_folder_path')
     output_folder = message_data.get('output_folder_path')
@@ -35,29 +76,21 @@ def anonymize(ch, method, properties, body, executor):
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
         return
     
-    custom_func = custom_func_factory(recipe_CSV)
+    CSV_lookup_func = patient_mapping(recipe_CSV)
     
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-        logging.warning(f"Output folder did not exist, created: {output_folder}")
-    
-    # This removes all the files in the output folder, this is only for testing purposes
-    for filename in os.listdir(output_folder):
-        file_path = os.path.join(output_folder, filename)
-        if os.path.isfile(file_path):
-            os.remove(file_path)
+    clear_output_folder(output_folder)
     
     dicom_files = list(get_files(input_folder))
     recipe = DeidRecipe(deid=recipe_path)
     
     # Temperarily suppress stdout and stderr to avoid cluttering the console
-    sys.stdout = open(os.devnull, 'w')
-    sys.stderr = open(os.devnull, 'w')
+    suppress_output()
     
     # Update the items so it contains the generate_uid function
-    items = get_identifiers(dicom_files)
+    items = get_identifiers(dicom_files,  expand_sequences=False)    
     for item in items:
-        items[item]["custom_func"] = custom_func
+        items[item]["CSV_lookup_func"] = CSV_lookup_func
+        items[item]["hash_func"] = hash_func
          
     updated = replace_identifiers(dicom_files=dicom_files, deid=recipe, ids=items)
     
@@ -67,19 +100,11 @@ def anonymize(ch, method, properties, body, executor):
         dicom_obj.save_as(output_path)
     
     # Restore stdout and stderr  
-    sys.stdout = sys.__stdout__
-    sys.stderr = sys.__stderr__  
+    restore_output()  
     
     ch.basic_ack(delivery_tag=method.delivery_tag)
     logging.info(f"Anonymization completed. Files from {input_folder} are anonymized and saved to {output_folder}.")
         
-    
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler()]
-)
-logger = logging.getLogger()
 
 if __name__ == "__main__":
     rabbitMQ_config = Config("rabbitMQ")
