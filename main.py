@@ -60,7 +60,7 @@ def restore_output():
     sys.stderr = sys.__stderr__
 
 
-# Main anonymization logic
+# Main anonymization function
 def anonymize(ch, method, properties, body, executor):
     message_str = body.decode("utf-8")
     
