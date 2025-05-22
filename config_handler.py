@@ -16,4 +16,15 @@ class Config:
 
     def read_config_section(self, file, sect):
         self.config = file.get(sect, {})
-        logging.info(f"Config data : {self.config}")
+        
+    def __getitem__(self, key):
+        return self.config[key]
+
+    def __getattr__(self, key):
+        try:
+            return self.config[key]  # Enables config.key
+        except KeyError:
+            raise AttributeError(f"'Config' object has no attribute '{key}'")
+
+    def as_dict(self):
+        return self.config  # Optional: for full dictionary access

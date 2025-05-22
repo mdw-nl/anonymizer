@@ -3,5 +3,5 @@
     "action": "anonymize",
     "output_folder_path": "./anonimised_folder/anonimised_data2",
     "recipe_path": "./recipes/recipe.dicom",
-    "recipe_CSV": "./recipes/recipe_CSV.csv"
+    "patient_lookup": "./recipes/patient_lookup.csv"
   }

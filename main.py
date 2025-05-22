@@ -9,6 +9,9 @@ import hashlib
 from deid.dicom import get_files, replace_identifiers
 from deid.config import DeidRecipe
 from deid.dicom import get_identifiers
+from pydicom.dataset import Dataset
+from pydicom.datadict import add_private_dict_entries
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(
@@ -35,6 +38,11 @@ def patient_mapping(CSV_mapping):
     
     return CSV_lookup_func
 
+def DeIdentificationMethod(field, value, item, dicom):
+    now = datetime.now()
+    date_str = now.strftime("%d%m%Y")
+    time_str = now.strftime("%H%M%S")
+    return f"deid: {date_str}:{time_str}"
 
 def clear_output_folder(folder_path):
     """Delete all files in the output folder (for testing purposes)."""
@@ -69,17 +77,23 @@ def anonymize(ch, method, properties, body, executor):
     output_folder = message_data.get('output_folder_path')
     recipe_path = message_data.get('recipe_path')
     action = message_data.get('action')
-    recipe_CSV = message_data.get('recipe_CSV')
+    patient_lookup_csv = message_data.get('patient_lookup')
+    
+    # Get the variables from the yaml file
+    variables_config = Config("variables")
+    PatientName = variables_config["PatientName"]
+    ProfileName = variables_config["ProfileName"]
+    ProjectName = variables_config["ProjectName"]
+    TrialName = variables_config["TrialName"]
+    SiteName = variables_config["SiteName"]
+    SiteID = variables_config["SiteID"]
     
     if action != "anonymize":
         logging.warning(f"Action {action} is not supported. Skipping message.")
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
         return
-    
-    CSV_lookup_func = patient_mapping(recipe_CSV)
-    
-    clear_output_folder(output_folder)
-    
+        
+    clear_output_folder(output_folder) 
     dicom_files = list(get_files(input_folder))
     recipe = DeidRecipe(deid=recipe_path)
     
@@ -89,24 +103,47 @@ def anonymize(ch, method, properties, body, executor):
     # Update the items so it contains the generate_uid function
     items = get_identifiers(dicom_files,  expand_sequences=False)    
     for item in items:
-        items[item]["CSV_lookup_func"] = CSV_lookup_func
+        items[item]["CSV_lookup_func"] = patient_mapping(patient_lookup_csv)
         items[item]["hash_func"] = hash_func
+        items[item]["DeIdentificationMethod"] = DeIdentificationMethod
+        items[item]["PatientName"] = PatientName
          
     updated = replace_identifiers(dicom_files=dicom_files, deid=recipe, ids=items)
     
+    # Restore stdout and stderr  
+    restore_output()  
+
+    # Names of the private tags
+    entries = {
+        0x10011001:( "SH", "1", "ProfileName", ""),
+        0x10011002:( "SH", "1", "ProjectName", ""),
+        0x10011003:( "SH", "1", "TrialName", ""),
+        0x10011004:( "SH", "1", "SiteName", ""),
+        0x10011005:( "SH", "1", "SiteID", ""),
+    }
+    
     for idx, dicom_obj in enumerate(updated, 1):
+        
+        # Add private tags
+        block = dicom_obj.private_block(0x1001, 'Deid', create=True)
+        block.add_new(0x01, "SH", ProfileName)
+        block.add_new(0x02, "SH", ProjectName)
+        block.add_new(0x03, 'SH', TrialName)
+        block.add_new(0x04, 'SH', SiteName)
+        block.add_new(0x05, 'SH', SiteID)
+        
+        add_private_dict_entries("Deid", entries)
+
         output_filename = f"anonymised_DICOM_{idx}.dcm"
         output_path = os.path.join(output_folder, output_filename)
         dicom_obj.save_as(output_path)
-    
-    # Restore stdout and stderr  
-    restore_output()  
-    
+        
     ch.basic_ack(delivery_tag=method.delivery_tag)
     logging.info(f"Anonymization completed. Files from {input_folder} are anonymized and saved to {output_folder}.")
         
 
 if __name__ == "__main__":
+    
     rabbitMQ_config = Config("rabbitMQ")
     cons = Consumer(rmq_config=rabbitMQ_config)
     cons.open_connection_rmq()
