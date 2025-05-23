@@ -87,6 +87,7 @@ class Anonymizer:
         recipe = DeidRecipe(deid=recipe_path)
 
         self.suppress_output()
+        
         items = get_identifiers(dicom_files, expand_sequences=False)
         for item in items:
             items[item].update({
@@ -100,10 +101,10 @@ class Anonymizer:
 
         private_entries = {
             0x10011001: ("SH", "1", "ProfileName"),
-            0x10031002: ("SH", "1", "ProjectName"),
-            0x10051003: ("SH", "1", "TrialName"),
-            0x10071004: ("SH", "1", "SiteName"),
-            0x10091005: ("SH", "1", "SiteID"),
+            0x10031001: ("SH", "1", "ProjectName"),
+            0x10051001: ("SH", "1", "TrialName"),
+            0x10071001: ("SH", "1", "SiteName"),
+            0x10091001: ("SH", "1", "SiteID"),
         }
 
         add_private_dict_entries("Deid", private_entries)

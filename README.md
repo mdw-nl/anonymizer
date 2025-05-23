@@ -1,8 +1,6 @@
-# anonymizer
-docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=myuser -e RABBITMQ_DEFAULT_PASS=mypassword rabbitmq:3-management
-
 The difference between this version and CTP:
 - The hashuid is probably based on a different hash so the produced value is not the same. The hash used is the only hash in the deid package that gives a deterministic uid answer.
+- For the hashuid needs to be given a prefix this is it the org_id. This is is the only variable that needs to be hard coded into the recipe.dicom.
 - A custom function has been created for the normal hash function, this is done with the MD5 hash which is probably different then the CTP hash, it takes the first 16 characters.
 - For the StructureSetLabel the same custom hash function has been used. This causes the length of the computed value to be different then the computed CTP value.
 - PatientID is replaced by a custom function that does a look up in a CSV file. The CSV file is called patient_custom.csv
