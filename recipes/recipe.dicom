@@ -221,9 +221,9 @@ KEEP RelatedFrameOfReferenceUID
 KEEP DoseReferenceUID
 
 ADD PatientIdentityRemoved YES
-ADD PatientName SEDI_TEST001
+ADD PatientName var:PatientName
 ADD PatientID func:CSV_lookup_func
-ADD DeIdentificationMethod 
+ADD DeidentificationMethod func:DeIdentificationMethod
 
 REPLACE InstanceCreatorUID deid_func:pydicom_uuid prefix=99999.
 REPLACE SOPInstanceUID deid_func:pydicom_uuid prefix=99999.

@@ -8,10 +8,6 @@ The difference between this version and CTP:
 - PatientID is replaced by a custom function that does a look up in a CSV file. The CSV file is called patient_custom.csv
 - VerifyingObserverName, PersonName instead of an if statement that checks if the value is empty is it just replaced. This is because deid does not support if statements in the recipe.
 - 0018, 0020, curves, overlays, 0028, are groups and deid does support actions on groups, so line 1050 until 1056 from anonymizer.properties are omitted.
-- In CTP the remove privategroups is disabled however, if it needs to be enabled it can be replicated bij ds.remove_private_tags()
+- In CTP the remove privategroups is disabled however, here it is done before the private tags are added.
 - Deid does not support adding or manipulating private tags, so for this the recipe does not work and it needs to be coded into the python script. Pydicom does not allow for direct control over the name of the private tag. However you can add a dictionary with the names of the of the private tag, this can only be seen with the pydicom package.
 - DeidentificationMethod does not contain profilename anymore, profilename is added as a private tag.
-
-
-To do:
-- yaml for standard variables
