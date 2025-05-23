@@ -8,8 +8,8 @@ services:
       - "5672:5672"  # RabbitMQ port for communication
       - "15672:15672"  # Management console web UI port
     environment:
-      RABBITMQ_DEFAULT_USER: myuser
-      RABBITMQ_DEFAULT_PASS: mypassword
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
     networks:
       - app_network
 
@@ -23,8 +23,8 @@ services:
     environment:
       - RABBITMQ_HOST=rabbitmq  # Service name of the RabbitMQ container
       - RABBITMQ_PORT=5672
-      - RABBITMQ_USER=myuser
-      - RABBITMQ_PASSWORD=mypassword
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
     volumes:
       - ./config.yaml:/app/config.yaml  # Mount config.yaml into the container
       - ./anonimised_folder:/app/anonimised_folder
