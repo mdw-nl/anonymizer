@@ -175,7 +175,7 @@ BLANK PatientBirthDate
 BLANK ContrastBolusAgent
 BLANK StructureSetDate
 BLANK StructureSetTime
-BLANK StudieID
+BLANK StudyID
 
 KEEP SpecificCharacterSet
 KEEP InstanceCreationDate
@@ -228,7 +228,7 @@ ADD DeidentificationMethod func:DeIdentificationMethod
 REPLACE InstanceCreatorUID deid_func:pydicom_uuid prefix=99999.
 REPLACE SOPInstanceUID deid_func:pydicom_uuid prefix=99999.
 REPLACE PrivateCodingSchemeCreatorUID deid_func:pydicom_uuid prefix=99999.
-REPLACE RefSOPInstanceUID deid_func:pydicom_uuid prefix=99999.
+REPLACE ReferencedSOPInstanceUID deid_func:pydicom_uuid prefix=99999.
 REPLACE DeviceUID deid_func:pydicom_uuid prefix=99999.
 REPLACE StudyInstanceUID deid_func:pydicom_uuid prefix=99999.
 REPLACE SeriesInstanceUID deid_func:pydicom_uuid prefix=99999.
