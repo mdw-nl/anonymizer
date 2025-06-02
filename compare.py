@@ -18,14 +18,13 @@ def compare_dicom(ds1, ds2):
         if key not in keys1:
             differences.append(f"Tag '{key}' only in second file.")
             continue
-        # if key not in keys2:
-        #     differences.append(f"Tag '{key}' only in first file.")
-        #     continue
+        if key not in keys2:
+            differences.append(f"Tag '{key}' only in first file.")
+            continue
 
         val1 = getattr(ds1, key, None)
         val2 = getattr(ds2, key, None)
 
-        # Ignore large binary data like pixel arrays or sequence length mismatches
         if isinstance(val1, bytes) or isinstance(val2, bytes):
             continue
         if val1 != val2:
