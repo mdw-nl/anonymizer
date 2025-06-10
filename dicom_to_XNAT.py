@@ -2,18 +2,58 @@ import os
 from pydicom import dcmread
 from pynetdicom import AE, StoragePresentationContexts
 
-ae = AE()
-ae.requested_contexts = StoragePresentationContexts
-assoc = ae.associate('localhost', 8104, ae_title='XNAT')
+def adding_treatment_site():
+    root_folder = 'anonimised_folder'
 
-dicom_dir = (r'anonimised_folder\anonimised_data')
+    patient_ids = ["Tom1", "Tom2"]
+    treatment_sites = ["LUNG1", "KIDNEY1"]
 
-if assoc.is_established:
-    for file in os.listdir(dicom_dir):
-        ds = dcmread(os.path.join(dicom_dir, file))
+    for ids, treatment_site, folder in zip(patient_ids, treatment_sites, os.listdir(root_folder)):
+        folder_path = os.path.join(root_folder, folder)
+        for file in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, file)
+            ds = dcmread(file_path)
+            ds.PatientID = ids
+            ds.BodyPartExamined  = treatment_site
+            ds.save_as(file_path)
 
-        status = assoc.send_c_store(ds)
+def to_XNAT():
+    root_folder = 'anonimised_folder'
+
+    ae = AE()
+    ae.requested_contexts = StoragePresentationContexts
+
+    ports = {
+        "LUNG1": {"Title": "LUNG1", "Port": 8104},
+        "KIDNEY1": {"Title": "KIDNEY1", "Port": 8105}
+    }
+
+    for folder in os.listdir(root_folder):
+        folder_path = os.path.join(root_folder, folder)
         
-    assoc.release()
-else:
-    print("Association failed")
+        ds = dcmread(os.path.join(folder_path, os.listdir(folder_path)[0]))
+        treatment_site = ds.BodyPartExamined
+        
+        print(ds.PatientID)
+        print(treatment_site)
+        
+        port = ports[treatment_site]["Port"]
+        Title = ports[treatment_site]["Title"]
+        
+        
+        assoc = ae.associate('localhost', port, ae_title = Title)
+        
+        if assoc.is_established:
+            for file in os.listdir(folder_path):
+                file_path = os.path.join(folder_path, file)
+                
+                ds = dcmread(file_path)
+                assoc.send_c_store(ds)
+            
+            
+            assoc.release()
+        else:
+            print("Association failes")
+
+if __name__ == "__main__":
+    to_XNAT()
