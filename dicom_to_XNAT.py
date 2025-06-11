@@ -25,7 +25,7 @@ def to_XNAT():
 
     ports = {
         "LUNG1": {"Title": "LUNG1", "Port": 8104},
-        "KIDNEY1": {"Title": "KIDNEY1", "Port": 8105}
+        "KIDNEY1": {"Title": "KIDNEY1", "Port": 8104}
     }
 
     for folder in os.listdir(root_folder):
@@ -57,3 +57,4 @@ def to_XNAT():
 
 if __name__ == "__main__":
     to_XNAT()
+    
