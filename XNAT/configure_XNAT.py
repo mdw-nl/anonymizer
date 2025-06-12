@@ -33,7 +33,7 @@ class XNAT_configure:
 
         for data in SCP_dataset:
             response = requests.post(SCP_url, json=data, headers=self.json_headers, auth=HTTPBasicAuth(username, password))
-            print("Status Code:", response.status_code)
+            print("Status SCP-receivers:", response.status_code)
 
     def configure_project(self, project_path, project_url, username, password):
         
@@ -46,7 +46,7 @@ class XNAT_configure:
         for project in root.findall('xnat:projectData', namespaces):
             project_data = ET.tostring(project, encoding='unicode')
             response = requests.post(project_url, data=project_data, headers=self.project_headers, auth=HTTPBasicAuth(username, password))
-            print("Status Code:", response.status_code)
+            print("Status projects:", response.status_code)
 
 if __name__ == "__main__":
     SCP_url = "http://localhost/xapi/dicomscp"
