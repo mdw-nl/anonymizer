@@ -1,6 +1,6 @@
 [{
     "id": 1,
-    "aeTitle": "LUNG1",
+    "aeTitle": "LUNG",
     "port": 8104,
     "enabled": true,
     "customProcessing": false,
@@ -10,12 +10,12 @@
     "whitelistEnabled": false,
     "whitelistText": "",
     "routingExpressionsEnabled": true,
-    "projectRoutingExpression": "(0008,0018):(.*):1 t:.+ r:LUNG1",
+    "projectRoutingExpression": "(0008,0018):(.*):1 t:.+ r:LUNG",
     "subjectRoutingExpression": "",
     "sessionRoutingExpression": ""
 }, 
 {"id": 1,
-"aeTitle": "KIDNEY1",
+"aeTitle": "KIDNEY",
 "port": 8104,
 "enabled": true,
 "customProcessing": false,
@@ -25,6 +25,6 @@
 "whitelistEnabled": false,
 "whitelistText": "",
 "routingExpressionsEnabled": true,
-"projectRoutingExpression": "(0008,0018):(.*):1 t:.+ r:KIDNEY1",
+"projectRoutingExpression": "(0008,0018):(.*):1 t:.+ r:KIDNEY",
 "subjectRoutingExpression": "",
 "sessionRoutingExpression": ""}]

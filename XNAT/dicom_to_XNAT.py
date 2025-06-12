@@ -6,7 +6,7 @@ def adding_treatment_site():
     root_folder = 'anonimised_folder'
 
     patient_ids = ["Tom1", "Tom2"]
-    treatment_sites = ["LUNG1", "KIDNEY1"]
+    treatment_sites = ["LUNG", "KIDNEY"]
 
     for ids, treatment_site, folder in zip(patient_ids, treatment_sites, os.listdir(root_folder)):
         folder_path = os.path.join(root_folder, folder)
@@ -24,8 +24,8 @@ def to_XNAT():
     ae.requested_contexts = StoragePresentationContexts
 
     ports = {
-        "LUNG1": {"Title": "LUNG1", "Port": 8104},
-        "KIDNEY1": {"Title": "KIDNEY1", "Port": 8104}
+        "LUNG": {"Title": "LUNG", "Port": 8104},
+        "KIDNEY": {"Title": "KIDNEY", "Port": 8104}
     }
 
     for folder in os.listdir(root_folder):
@@ -33,9 +33,6 @@ def to_XNAT():
         
         ds = dcmread(os.path.join(folder_path, os.listdir(folder_path)[0]))
         treatment_site = ds.BodyPartExamined
-        
-        print(ds.PatientID)
-        print(treatment_site)
         
         port = ports[treatment_site]["Port"]
         Title = ports[treatment_site]["Title"]
@@ -56,5 +53,6 @@ def to_XNAT():
             print("Association failes")
 
 if __name__ == "__main__":
+    adding_treatment_site()
     to_XNAT()
     
