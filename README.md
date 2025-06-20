@@ -10,7 +10,3 @@ The difference between this version and CTP:
 - Deid does not support adding or manipulating private tags, so for this the recipe does not work and it needs to be coded into the python script. Pydicom does not allow for direct control over the name of the private tag. However you can add a dictionary with the names of the of the private tag, this can only be seen with the pydicom package.
 - DeidentificationMethod does not contain profilename anymore, profilename is added as a private tag.
 
-compose_XNAT:
-- The AE title of the SCP receiver should be the same as the project id.
-- Ports of the SCP receivers can be reused.
-
