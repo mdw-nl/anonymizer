@@ -6,5 +6,3 @@ dicompyler-core
 requests
 deid
 pynetdicom
-requests
-xnat
