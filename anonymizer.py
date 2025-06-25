@@ -17,8 +17,8 @@ logger = logging.getLogger()
 
 class Anonymizer:
 
-    def __init__(self, config_section="variables"):
-        self.variables_config = Config(config_section)
+    def __init__(self, config_section="variables", file_name="my_other_config.yaml"):
+        self.variables_config = Config(config_section, file_name=file_name)
         self.PatientName = self.variables_config["PatientName"]
         self.ProfileName = self.variables_config["ProfileName"]
         self.ProjectName = self.variables_config["ProjectName"]
