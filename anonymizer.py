@@ -53,6 +53,7 @@ class Anonymizer:
             file_path = os.path.join(folder_path, filename)
             if os.path.isfile(file_path):
                 os.remove(file_path)
+                logging.info(f"Removed the files in {file_path}")
 
     @staticmethod
     def suppress_output():
@@ -130,10 +131,9 @@ class Anonymizer:
 
 # Main runner
 if __name__ == "__main__":
-    rabbitMQ_config = Config("rabbitMQ")
+    rabbitMQ_config = Config("rabbitMQanonymizer")
     cons = Consumer(rmq_config=rabbitMQ_config)
     cons.open_connection_rmq()
-    cons.send_message("messages")
     anonymizer = Anonymizer()
     cons.start_consumer(callback=anonymizer.anonymize)
 

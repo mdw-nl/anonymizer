@@ -1,10 +1,10 @@
-rabbitMQ:
+rabbitMQanonymizer:
   host: "localhost"
   port: "5672"
   username: "guest"
   password: "guest"
-  queue_name: "DICOM_Processor"
-
+  queue_name: "anonymizer"
+  
 variables:
   PatientName: "SEDI_TEST001"
   ProfileName: "TEST_PROFILE"
