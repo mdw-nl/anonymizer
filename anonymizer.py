@@ -69,9 +69,9 @@ class Anonymizer:
         message_data = json.loads(body.decode("utf-8"))
         input_folder = message_data.get('input_folder_path')
         output_folder = message_data.get('output_folder_path')
-        recipe_path = message_data.get('recipe_path')
+        recipe_path = "recipes/recipe.dicom"
         action = message_data.get('action')
-        patient_lookup_csv = message_data.get('patient_lookup')
+        patient_lookup_csv = "recipes/patient_lookup.csv"
 
         if action != "anonymize":
             logger.warning(f"Unsupported action: {action}")
