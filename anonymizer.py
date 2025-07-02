@@ -19,6 +19,7 @@ logger = logging.getLogger()
 class Anonymizer:
 
     def __init__(self, config_section="variables", file_name="variables.yaml"):
+        # Get the private tags from the varaibles.yaml file
         self.variables_config = Config(config_section, file_name=file_name)
         self.PatientName = self.variables_config["PatientName"]
         self.ProfileName = self.variables_config["ProfileName"]
@@ -27,6 +28,10 @@ class Anonymizer:
         self.SiteName = self.variables_config["SiteName"]
         self.SiteID = self.variables_config["SiteID"]
 
+        # Paths to the recipes that are mounted in the digione infrastructure docker compose volumes.
+        self.recipe_path = "app/recipes/recipe.dicom"
+        self.patient_lookup_csv = "app/recipes/patient_lookup.csv"
+        
     @staticmethod
     def hash_func(item, value, field, dicom):
         return hashlib.md5(value.encode()).hexdigest()[:16]
@@ -40,7 +45,7 @@ class Anonymizer:
         return lookup
 
     @staticmethod
-    def deid_method(field, value, item, dicom):
+    def current_date(field, value, item, dicom):
         now = datetime.now()
         return f"deid: {now.strftime('%d%m%Y:%H%M%S')}"
 
@@ -82,19 +87,22 @@ class Anonymizer:
         dicom_files = list(get_files(input_folder))
         recipe = DeidRecipe(deid=recipe_path)
 
+        # Suppreses the logger
         self.suppress_output()
         
+        # Applies the methods previously defined into the items 
         items = get_identifiers(dicom_files, expand_sequences=False)
         for item in items:
             items[item].update({
                 "CSV_lookup_func": self.patient_mapping(patient_lookup_csv),
                 "hash_func": self.hash_func,
-                "DeIdentificationMethod": self.deid_method,
+                "DeIdentificationMethod": self.current_date,
                 "PatientName": self.PatientName
             })
         updated = replace_identifiers(dicom_files=dicom_files, deid=recipe, ids=items)
         self.restore_output()
 
+        # Define the private tags
         private_entries = {
             0x10011001: ("SH", "1", "ProfileName"),
             0x10031001: ("SH", "1", "ProjectName"),
@@ -124,21 +132,21 @@ class Anonymizer:
         
     
     def run(self, ch, method, properties, body, executor):
+        # Get the data from the rabbitMQ message
         message_data = json.loads(body.decode("utf-8"))
         input_folder = message_data.get('input_folder_path')
         output_folder = message_data.get('output_folder_path')
-        recipe_path = "recipes/recipe.dicom"
         action = message_data.get('action')
-        patient_lookup_csv = "recipes/patient_lookup.csv"
         
         if action != "anonymize":
             logger.warning(f"Unsupported action: {action}")
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
             return
         
-        self.anonymize(input_folder, output_folder, recipe_path, action, patient_lookup_csv)
+        self.anonymize(input_folder, output_folder, self.recipe_path, action, self.patient_lookup_csv)
         ch.basic_ack(delivery_tag=method.delivery_tag)
         
+        # Send a message to the next queue.
         self.send_next_queue(Config("anonymizer")["send_queue"], output_folder)
         
         

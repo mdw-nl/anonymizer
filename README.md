@@ -1,3 +1,6 @@
+This anonymizer class takes a folder with dicom files and anonymizes according to the recipes. The digioneinfrastructure shares the recipes folder. If you don't use the digione infrastructure repository the paths: self.recipe_path and need to be corrected self.patient_lookup_csv.  Private tags are added via the variables.yaml file for this the config_handler is changed that way it can handle yaml files with different names. For now the variables.yaml is placed in this repository maybe later place in the digioneinfrastructure and share it with the volumes. Now it automtically clears the folder where the data needs to be stored for final use it might needs to be disabled.
+
+
 The difference between this version and CTP:
 - The hashuid is probably based on a different hash so the produced value is not the same. The hash used is the only hash in the deid package that gives a deterministic uid answer.
 - For the hashuid needs to be given a prefix this is it the org_id. This is is the only variable that needs to be hard coded into the recipe.dicom.
