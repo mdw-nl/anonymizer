@@ -10,6 +10,7 @@ from deid.config import DeidRecipe
 from pydicom.datadict import add_private_dict_entries
 from config_handler import Config
 from consumer import Consumer
+from RabbitMQ_messenger import messenger
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -68,7 +69,7 @@ class Anonymizer:
     def anonymize(self, ch, method, properties, body, executor):
         message_data = json.loads(body.decode("utf-8"))
         input_folder = message_data.get('input_folder_path')
-        output_folder = message_data.get('output_folder_path')
+        self.output_folder = message_data.get('output_folder_path')
         recipe_path = "recipes/recipe.dicom"
         action = message_data.get('action')
         patient_lookup_csv = "recipes/patient_lookup.csv"
@@ -78,11 +79,11 @@ class Anonymizer:
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
             return
 
-        if not os.path.exists(output_folder):
-            logger.info(f"Creating output folder: {output_folder}")
-            os.makedirs(output_folder)
+        if not os.path.exists(self.output_folder):
+            logger.info(f"Creating output folder: {self.output_folder}")
+            os.makedirs(self.output_folder)
         else:
-            self.clear_output_folder(output_folder)
+            self.clear_output_folder(self.output_folder)
 
         dicom_files = list(get_files(input_folder))
         recipe = DeidRecipe(deid=recipe_path)
@@ -118,7 +119,7 @@ class Anonymizer:
             dicom_obj.private_block(0x1007, 'Deid', create=True).add_new(0x01, "SH", self.SiteName)
             dicom_obj.private_block(0x1009, 'Deid', create=True).add_new(0x01, "SH", self.SiteID)
 
-            output_path = os.path.join(output_folder, f"anonymised_DICOM_{idx}.dcm")
+            output_path = os.path.join(self.output_folder, f"anonymised_DICOM_{idx}.dcm")
             
             try:
                 dicom_obj.save_as(output_path)
@@ -127,13 +128,19 @@ class Anonymizer:
             
             
         ch.basic_ack(delivery_tag=method.delivery_tag)
-        logger.info(f"Anonymization completed. Files saved to: {output_folder}")
+        logger.info(f"Anonymization completed. Files saved to: {self.output_folder}")
+        
+    def run(self, queue):
+        self.anonymize()
+        message_creator = messenger()
+        message_creator.create_message_next_queue(queue, self.output_folder)
 
 # Main runner
 if __name__ == "__main__":
-    rabbitMQ_config = Config("rabbitMQanonymizer")
+    rabbitMQ_config = Config("anonymizer")
     cons = Consumer(rmq_config=rabbitMQ_config)
     cons.open_connection_rmq()
     anonymizer = Anonymizer()
-    cons.start_consumer(callback=anonymizer.anonymize)
+    next_queue = rabbitMQ_config["send_queue"]
+    cons.start_consumer(callback=anonymizer.run(next_queue))
 
