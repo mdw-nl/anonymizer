@@ -29,8 +29,8 @@ class Anonymizer:
         self.SiteID = self.variables_config["SiteID"]
 
         # Paths to the recipes that are mounted in the digione infrastructure docker compose volumes.
-        self.recipe_path = "app/anonimised_folder/recipe.dicom"
-        self.patient_lookup_csv = "app/anonimised_folders/patient_lookup.csv"
+        self.recipe_path = "app/anonymiser_recipes/recipe.dicom"
+        self.patient_lookup_csv = "app/anonymiser_recipes/patient_lookup.csv"
         
     @staticmethod
     def hash_func(item, value, field, dicom):
