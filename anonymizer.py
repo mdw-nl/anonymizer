@@ -29,8 +29,8 @@ class Anonymizer:
         self.SiteID = self.variables_config["SiteID"]
 
         # Paths to the recipes that are mounted in the digione infrastructure docker compose volumes.
-        self.recipe_path = "app/anonymiser_recipes/recipe.dicom"
-        self.patient_lookup_csv = "app/anonymiser_recipes/patient_lookup.csv"
+        self.recipe_path = "/app/anonymiser_recipes/recipe.dicom"
+        self.patient_lookup_csv = "/app/anonymiser_recipes/patient_lookup.csv"
         
     @staticmethod
     def hash_func(item, value, field, dicom):
@@ -76,7 +76,7 @@ class Anonymizer:
         message_creator = messenger()
         message_creator.create_message_next_queue(queue, data_folder)
 
-    def anonymize(self, input_folder, output_folder, recipe_path, action, patient_lookup_csv):
+    def anonymize(self, input_folder, output_folder, recipe_path, patient_lookup_csv):
 
         if not os.path.exists(output_folder):
             logger.info(f"Creating output folder: {output_folder}")
@@ -143,7 +143,7 @@ class Anonymizer:
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
             return
         
-        self.anonymize(input_folder, output_folder, self.recipe_path, action, self.patient_lookup_csv)
+        self.anonymize(input_folder, output_folder, self.recipe_path, self.patient_lookup_csv)
         ch.basic_ack(delivery_tag=method.delivery_tag)
         
         # Send a message to the next queue.
