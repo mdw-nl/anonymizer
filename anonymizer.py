@@ -132,6 +132,7 @@ class Anonymizer:
         
     def run(self, queue):
         self.anonymize
+        print(queue)
         message_creator = messenger()
         message_creator.create_message_next_queue(queue, self.output_folder)
 
@@ -142,5 +143,5 @@ if __name__ == "__main__":
     cons.open_connection_rmq()
     anonymizer = Anonymizer()
     next_queue = rabbitMQ_config["send_queue"]
-    cons.start_consumer(callback=anonymizer.anonymize)
+    cons.start_consumer(callback=anonymizer.run(next_queue))
 
