@@ -71,18 +71,7 @@ class Anonymizer:
         message_creator = messenger()
         message_creator.create_message_next_queue(queue, data_folder)
 
-    def anonymize(self, ch, method, properties, body, executor):
-        message_data = json.loads(body.decode("utf-8"))
-        input_folder = message_data.get('input_folder_path')
-        output_folder = message_data.get('output_folder_path')
-        recipe_path = "recipes/recipe.dicom"
-        action = message_data.get('action')
-        patient_lookup_csv = "recipes/patient_lookup.csv"
-
-        if action != "anonymize":
-            logger.warning(f"Unsupported action: {action}")
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
-            return
+    def anonymize(self, input_folder, output_folder, recipe_path, action, patient_lookup_csv):
 
         if not os.path.exists(output_folder):
             logger.info(f"Creating output folder: {output_folder}")
@@ -131,17 +120,33 @@ class Anonymizer:
             except Exception as e:
                 logger.error(f"Failed to save DICOM {idx}: {e}")
             
-            
-        ch.basic_ack(delivery_tag=method.delivery_tag)
         logger.info(f"Anonymization completed. Files saved to: {output_folder}")
         
+    
+    def run(self, ch, method, properties, body, executor):
+        message_data = json.loads(body.decode("utf-8"))
+        input_folder = message_data.get('input_folder_path')
+        output_folder = message_data.get('output_folder_path')
+        recipe_path = "recipes/recipe.dicom"
+        action = message_data.get('action')
+        patient_lookup_csv = "recipes/patient_lookup.csv"
+        
+        if action != "anonymize":
+            logger.warning(f"Unsupported action: {action}")
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+            return
+        
+        self.anonymize(input_folder, output_folder, recipe_path, action, patient_lookup_csv)
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+        
         self.send_next_queue(Config("anonymizer")["send_queue"], output_folder)
-
+        
+        
 # Main runner
 if __name__ == "__main__":
     rabbitMQ_config = Config("anonymizer")
     cons = Consumer(rmq_config=rabbitMQ_config)
     cons.open_connection_rmq()
     anonymizer = Anonymizer()
-    cons.start_consumer(callback=anonymizer.anonymize)
+    cons.start_consumer(callback=anonymizer.run)
 
