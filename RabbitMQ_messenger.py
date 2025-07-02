@@ -40,6 +40,6 @@ class messenger:
         rabbitMQ_config_radiomics = Config(queue)
         radiomics = Consumer(rmq_config=rabbitMQ_config_radiomics)
         radiomics.open_connection_rmq()
-        radiomics.send_message(output_file_path)
+        radiomics.send_message(self.message_folder)
         
         logging.info(f"Send the messsage in the folder: {output_file_path} to: {queue} ")

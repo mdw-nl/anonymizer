@@ -54,7 +54,8 @@ class Anonymizer:
             file_path = os.path.join(folder_path, filename)
             if os.path.isfile(file_path):
                 os.remove(file_path)
-                logging.info(f"Removed the files in {file_path}")
+                
+        logging.info(f"Removed the files in {folder_path}")
 
     @staticmethod
     def suppress_output():
