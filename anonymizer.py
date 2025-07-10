@@ -137,12 +137,6 @@ class Anonymizer:
         message_data = json.loads(body.decode("utf-8"))
         input_folder = message_data.get('input_folder_path')
         output_folder = message_data.get('output_folder_path')
-        action = message_data.get('action')
-        
-        if action != "anonymize":
-            logger.warning(f"Unsupported action: {action}")
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
-            return
         
         self.anonymize(input_folder, output_folder, self.recipe_path, self.patient_lookup_csv)
         ch.basic_ack(delivery_tag=method.delivery_tag)

@@ -1,4 +1,6 @@
 import pydicom
+"""This script can be used to compare two dicom trees with one another to check the differences."""
+
 
 def load_dicom(file_path):
     try:
