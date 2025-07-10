@@ -77,6 +77,7 @@ class Anonymizer:
         message_creator.create_message_next_queue(queue, data_folder)
 
     def anonymize(self, input_folder, output_folder, recipe_path, patient_lookup_csv):
+        logging.info(f"Start anonymizing: {input_folder}")
 
         if not os.path.exists(output_folder):
             logger.info(f"Creating output folder: {output_folder}")
