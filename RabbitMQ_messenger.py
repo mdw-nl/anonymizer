@@ -10,7 +10,7 @@ logger = logging.getLogger()
 
 
 """This messenger class is made to build and send messages based on the arguments: data_folder, which is the directory of the folder path with
-the data and the queue. The queue is based on the name of the next rabbbitmq name, make sure that the queue name als equals the name of that
+the data and the queue. The queue is based on the name of the next rabbbitmq name, make sure that the queue name equals the name of that
 part of the config file"""
 
 class messenger:
