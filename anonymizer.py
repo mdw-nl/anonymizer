@@ -133,14 +133,14 @@ class Anonymizer:
         
     
     def run(self, ch, method, properties, body, executor):
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+                
         # Get the data from the rabbitMQ message
         message_data = json.loads(body.decode("utf-8"))
         input_folder = message_data.get('input_folder_path')
         output_folder = message_data.get('output_folder_path')
         
         self.anonymize(input_folder, output_folder, self.recipe_path, self.patient_lookup_csv)
-        ch.basic_ack(delivery_tag=method.delivery_tag)
-        
         # Send a message to the next queue.
         self.send_next_queue(Config("anonymizer")["send_queue"], output_folder)
         
