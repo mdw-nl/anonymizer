@@ -139,11 +139,12 @@ class Anonymizer:
         message_data = json.loads(body.decode("utf-8"))
         input_folder = message_data.get('input_folder_path')
         output_folder = message_data.get('output_folder_path')
-        
-        self.anonymize(input_folder, output_folder, self.recipe_path, self.patient_lookup_csv)
-        # Send a message to the next queue.
-        self.send_next_queue(Config("anonymizer")["send_queue"], output_folder)
-        
+        try:
+            self.anonymize(input_folder, output_folder, self.recipe_path, self.patient_lookup_csv)
+            # Send a message to the next queue.
+            self.send_next_queue(Config("anonymizer")["send_queue"], output_folder)
+        except Exception as e:
+            logger.error(f"Error processing message: {e}")
         
 # Main runner
 if __name__ == "__main__":
