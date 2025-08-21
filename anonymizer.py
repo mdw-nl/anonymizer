@@ -141,11 +141,14 @@ class Anonymizer:
         output_folder = message_data.get('output_folder_path')
         try:
             self.anonymize(input_folder, output_folder, self.recipe_path, self.patient_lookup_csv)
-            # Send a message to the next queue.
-            self.send_next_queue(Config("anonymizer")["send_queue"], output_folder)
+
         except Exception as e:
             logger.error(f"Error processing message: {e}")
         
+        # Send a message to the next queue.
+        if Config("anonymizer")["send_queue"] != None:
+            self.send_next_queue(Config("anonymizer")["send_queue"], output_folder)
+            
 # Main runner
 if __name__ == "__main__":
     rabbitMQ_config = Config("anonymizer")
