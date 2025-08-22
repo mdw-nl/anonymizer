@@ -138,7 +138,8 @@ class Anonymizer:
         # Get the data from the rabbitMQ message
         message_data = json.loads(body.decode("utf-8"))
         input_folder = message_data.get('input_folder_path')
-        output_folder = message_data.get('output_folder_path')
+        output_folder = os.path.join(message_data.get('output_folder_path'),"dicom_data")
+        
         try:
             self.anonymize(input_folder, output_folder, self.recipe_path, self.patient_lookup_csv)
 
