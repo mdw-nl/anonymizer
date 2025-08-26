@@ -41,7 +41,10 @@ class Anonymizer:
         df = pd.read_csv(csv_path)
         def lookup(item, value, field, dicom):
             patient_id = dicom.PatientID
-            return df.loc[df['original'] == patient_id, 'new'].values[0]
+            matched = df.loc[df['original'] == patient_id, 'new']
+            if matched.empty:
+                raise ValueError(f"PatientID: '{patient_id}' not found in patient lookup CSV. Stopping the pipeline for this patient")
+            return matched.values[0]
         return lookup
 
     @staticmethod
