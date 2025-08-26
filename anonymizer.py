@@ -148,6 +148,7 @@ class Anonymizer:
 
         except Exception as e:
             logger.error(f"Error processing message: {e}")
+            return
         
         # Send a message to the next queue.
         if Config("anonymizer")["send_queue"] != None:
