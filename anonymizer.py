@@ -52,18 +52,22 @@ class Anonymizer:
         now = datetime.now()
         return f"deid: {now.strftime('%d%m%Y:%H%M%S')}"
 
-    @staticmethod
-    def clear_output_folder(folder_path):
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-            logger.warning(f"Output folder created: {folder_path}")
+
+    def create_and_clear_output_folder(self, input_folder):
+        output_base_path = "/app/anonimised_folder"
+        folder_name = os.path.basename(input_folder)
+        self.output_folder = os.path.join(output_base_path, f"anonimised_{folder_name}")
+
+        if not os.path.exists(self.output_folder):
+            os.makedirs(self.output_folder)
+            logger.info(f"Output folder created: {self.output_folder}")
             return
-        for filename in os.listdir(folder_path):
-            file_path = os.path.join(folder_path, filename)
+        for filename in os.listdir(self.output_folder):
+            file_path = os.path.join(self.output_folder, filename)
             if os.path.isfile(file_path):
                 os.remove(file_path)
                 
-        logging.info(f"Removed the files in {folder_path}")
+        logging.info(f"Removed the files in {self.output_folder}")
 
     @staticmethod
     def suppress_output():
@@ -79,14 +83,10 @@ class Anonymizer:
         message_creator = messenger()
         message_creator.create_message_next_queue(queue, data_folder)
 
-    def anonymize(self, input_folder, output_folder, recipe_path, patient_lookup_csv):
+    def anonymize(self, input_folder, recipe_path, patient_lookup_csv):
         logging.info(f"Start anonymizing: {input_folder}")
 
-        if not os.path.exists(output_folder):
-            logger.info(f"Creating output folder: {output_folder}")
-            os.makedirs(output_folder)
-        else:
-            self.clear_output_folder(output_folder)
+        self.create_and_clear_output_folder(input_folder)
 
         dicom_files = list(get_files(input_folder))
         recipe = DeidRecipe(deid=recipe_path)
@@ -125,14 +125,14 @@ class Anonymizer:
             dicom_obj.private_block(0x1007, 'Deid', create=True).add_new(0x01, "SH", self.SiteName)
             dicom_obj.private_block(0x1009, 'Deid', create=True).add_new(0x01, "SH", self.SiteID)
 
-            output_path = os.path.join(output_folder, f"anonymised_DICOM_{idx}.dcm")
+            output_path = os.path.join(self.output_folder, f"anonymised_DICOM_{idx}.dcm")
             
             try:
                 dicom_obj.save_as(output_path)
             except Exception as e:
                 logger.error(f"Failed to save DICOM {idx}: {e}")
             
-        logger.info(f"Anonymization completed. Files saved to: {output_folder}")
+        logger.info(f"Anonymization completed. Files saved to: {self.output_folder}")
         
     
     def run(self, ch, method, properties, body, executor):
@@ -141,10 +141,9 @@ class Anonymizer:
         # Get the data from the rabbitMQ message
         message_data = json.loads(body.decode("utf-8"))
         input_folder = message_data.get('input_folder_path')
-        output_folder = os.path.join(message_data.get('output_folder_path'),"dicom_data")
         
         try:
-            self.anonymize(input_folder, output_folder, self.recipe_path, self.patient_lookup_csv)
+            self.anonymize(input_folder, self.recipe_path, self.patient_lookup_csv)
 
         except Exception as e:
             logger.error(f"Error processing message: {e}")
@@ -152,7 +151,7 @@ class Anonymizer:
         
         # Send a message to the next queue.
         if Config("anonymizer")["send_queue"] != None:
-            self.send_next_queue(Config("anonymizer")["send_queue"], output_folder)
+            self.send_next_queue(Config("anonymizer")["send_queue"], self.output_folder)
             
 # Main runner
 if __name__ == "__main__":

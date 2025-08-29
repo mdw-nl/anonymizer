@@ -1,15 +1,73 @@
-This anonymizer class takes a folder with dicom files and anonymizes according to the recipes. The digioneinfrastructure shares the recipes folder. If you don't use the digione infrastructure repository the paths: self.recipe_path and need to be corrected self.patient_lookup_csv.  Private tags are added via the variables.yaml file for this the config_handler is changed that way it can handle yaml files with different names. For now the variables.yaml is placed in this repository maybe later place in the digioneinfrastructure and share it with the volumes. Now it automtically clears the folder where the data needs to be stored for final use it might needs to be disabled. It sends a next rabbitMQ message with the messenger class, the message contains the data folder path and the rabbitMQ queue. The next queue is determined with the digioneinfrastructure config.yaml file.
+This repository provides an **Anonymizer class** that processes DICOM files according to configurable recipes, anonymizes sensitive information, and sends the results forward in a processing pipeline via **RabbitMQ**.
 
+---
 
-The difference between this version and CTP:
-- The hashuid is probably based on a different hash so the produced value is not the same. The hash used is the only hash in the deid package that gives a deterministic uid answer.
-- For the hashuid needs to be given a prefix this is it the org_id. This is is the only variable that needs to be hard coded into the recipe.dicom.
-- A custom function has been created for the normal hash function, this is done with the MD5 hash which is probably different then the CTP hash, it takes the first 16 characters.
-- For the StructureSetLabel the same custom hash function has been used. This causes the length of the computed value to be different then the computed CTP value.
-- PatientID is replaced by a custom function that does a look up in a CSV file. The CSV file is called patient_custom.csv
-- VerifyingObserverName, PersonName instead of an if statement that checks if the value is empty is it just replaced. This is because deid does not support if statements in the recipe.
-- 0018, 0020, curves, overlays, 0028, are groups and deid does support actions on groups, so line 1050 until 1056 from anonymizer.properties are omitted.
-- In CTP the remove privategroups is disabled however, here it is done before the private tags are added.
-- Deid does not support adding or manipulating private tags, so for this the recipe does not work and it needs to be coded into the python script. Pydicom does not allow for direct control over the name of the private tag. However you can add a dictionary with the names of the of the private tag, this can only be seen with the pydicom package.
-- DeidentificationMethod does not contain profilename anymore, profilename is added as a private tag.
+## What It Does
+
+This anonymizer class takes a folder with DICOM files and anonymizes them according to the configured **recipes**.  
+
+- The **`patient_lookup.csv`** changes the `PatientID` from the old to the new.  
+  - If the patient ID is **not** found in this CSV, anonymization (and the pipeline) will stop.  
+- The **`recipe.dicom`** file tells the script how to anonymize.  
+- The **`digioneinfrastructure`** repository provides the shared `recipes` folder.  
+  - If you don’t use the `digioneinfrastructure` repository, update the paths:
+    - `self.recipe_path`
+    - `self.patient_lookup_csv`
+- Private tags are added via **`variables.yaml`**.  
+  - The `config_handler` has been updated to handle YAML files with different names.  
+  - For now, `variables.yaml` is stored in this repository, but it may later be moved to `digioneinfrastructure` and shared via Docker volumes.  
+- By default, the output folder is **cleared before writing new data**.  
+  - This ensures clean runs, but might need to be disabled depending on use cases.  
+- After anonymization, a **RabbitMQ message** is sent with the `messenger` class.  
+  - The message contains the data folder path and the RabbitMQ queue.  
+  - The next queue is determined via the `digioneinfrastructure/config.yaml` file.  
+
+---
+
+## Differences Compared to CTP
+
+This anonymizer is based on the [deid](https://pydicom.github.io/deid/) package, but with custom functions and adjustments to replicate/replace parts of the CTP pipeline:
+
+- **Hash UID**
+  - Uses a different hashing algorithm than CTP.
+  - Deterministic UID hash is provided by `deid`.
+  - Requires a prefix (`org_id`) hardcoded in `recipe.dicom`.
+
+- **Custom Hash Function**
+  - MD5-based hash, truncated to the first 16 characters.
+  - Used for general hashing and `StructureSetLabel`.
+  - Results differ in length/value compared to CTP.
+
+- **Patient ID Lookup**
+  - Replaced via a lookup in `patient_lookup.csv`.
+  - File is named `patient_custom.csv`.
+
+- **Name Handling**
+  - `VerifyingObserverName` and `PersonName` are **always replaced** (no `if` condition, since `deid` does not support conditional rules).
+
+- **Unsupported Groups**
+  - `0018, 0020, curves, overlays, 0028` are DICOM groups that `deid` cannot handle.  
+  - Lines 1050–1056 from `anonymizer.properties` are therefore omitted.
+
+- **Private Tags**
+  - In CTP, private group removal is disabled.  
+  - Here, private groups are **removed first** before custom private tags are added.  
+  - `deid` does not support adding/manipulating private tags → handled directly in Python.  
+  - `pydicom` does not allow renaming private tags, but a dictionary can be defined so tags show up with meaningful names when viewed via `pydicom`.
+
+- **DeidentificationMethod**
+  - No longer contains `profilename`.  
+  - Instead, `profilename` is stored as a private tag.
+
+---
+
+## Repository Structure
+
+- `anonymizer.py` → Main anonymizer class.  
+- `variables.yaml` → Defines private tag values (`PatientName`, `ProfileName`, `ProjectName`, etc.).  
+- `recipe.dicom` → Deid anonymization recipe file.  
+- `patient_lookup.csv` → Maps original patient IDs to new ones.  
+- `RabbitMQ_messenger.py` → Sends results to the next RabbitMQ queue.  
+- `config_handler.py` → Handles YAML-based configs.  
+- `consumer.py` → RabbitMQ consumer logic. 
 
