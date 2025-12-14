@@ -4,6 +4,9 @@ import json
 import os
 import sys
 import hashlib
+import pydicom
+import re
+import yaml
 from datetime import datetime
 from deid.dicom import get_files, replace_identifiers, get_identifiers
 from deid.config import DeidRecipe
@@ -31,6 +34,7 @@ class Anonymizer:
         # Paths to the recipes that are mounted in the digione infrastructure docker compose volumes.
         self.recipe_path = "/recipes/recipe.dicom"
         self.patient_lookup_csv = "/recipes/patient_lookup.csv"
+        self.ROI_normalization_path = "/recipes/ROI_normalization.yaml"
         
     @staticmethod
     def hash_func(item, value, field, dicom):
@@ -83,10 +87,59 @@ class Anonymizer:
         message_creator = messenger()
         message_creator.create_message_next_queue(queue, data_folder)
 
+    def find_rtstruct_files(self, folder_path):
+        with os.scandir(folder_path) as entries:
+            for entry in entries:
+                if entry.is_file() and entry.name.lower().endswith(".dcm"):
+                    try:
+                        ds = pydicom.dcmread(entry.path, stop_before_pixels=True)
+                        if getattr(ds, "Modality", "") == "RTSTRUCT":
+                            return entry.path 
+                    except Exception:
+                        continue
+
+            return None
+
+    
+    def ROI_normalization(self, folder_path):
+        # Load ROI map from YAML
+        with open(self.ROI_normalization_path) as f:
+            roi_map = yaml.safe_load(f)
+
+        compiled_map = {
+            canonical: [re.compile(p, re.IGNORECASE) for p in patterns]
+            for canonical, patterns in roi_map.items()
+        }
+
+        rtstruct_path = self.find_rtstruct_files(folder_path)
+
+        if rtstruct_path is None:
+            logging.warning(f"No RTSTRUCT file found in {folder_path}")
+            return
+        
+        ds = pydicom.dcmread(rtstruct_path, stop_before_pixels=True)
+
+        for roi in ds.StructureSetROISequence:
+            original_raw = roi.ROIName
+            original = original_raw.strip()
+
+            normalized = None
+
+            for canonical, regex_list in compiled_map.items():
+                if any(regex.search(original) for regex in regex_list):
+                    normalized = canonical
+                    break
+
+            if normalized and original_raw != normalized:
+                roi.ROIName = normalized
+            elif normalized is None:
+                logging.warning(f"No ROI map found for '{original_raw}'")
+
+        ds.save_as(rtstruct_path)
+
+        
     def anonymize(self, input_folder, recipe_path, patient_lookup_csv):
         logging.info(f"Start anonymizing: {input_folder}")
-
-        self.create_and_clear_output_folder(input_folder)
 
         dicom_files = list(get_files(input_folder))
         recipe = DeidRecipe(deid=recipe_path)
@@ -104,6 +157,8 @@ class Anonymizer:
                 "PatientName": self.PatientName
             })
         updated = replace_identifiers(dicom_files=dicom_files, deid=recipe, ids=items)
+        
+        # Turn logger on again
         self.restore_output()
 
         # Define the private tags
@@ -142,7 +197,10 @@ class Anonymizer:
         message_data = json.loads(body.decode("utf-8"))
         input_folder = message_data.get('input_folder_path')
         
+        self.create_and_clear_output_folder(input_folder)
+        
         try:
+            self.ROI_normalization(input_folder)
             self.anonymize(input_folder, self.recipe_path, self.patient_lookup_csv)
 
         except Exception as e:
