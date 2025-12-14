@@ -21,16 +21,19 @@ logger = logging.getLogger()
 
 class Anonymizer:
 
-    def __init__(self, config_section="variables", file_name="/recipes/variables.yaml"):
+    def __init__(self, file_name="/recipes/variables.yaml"):
         # Get the private tags from the varaibles.yaml file
-        self.variables_config = Config(config_section, file_name=file_name)
-        self.PatientName = self.variables_config["PatientName"]
-        self.ProfileName = self.variables_config["ProfileName"]
-        self.ProjectName = self.variables_config["ProjectName"]
-        self.TrialName = self.variables_config["TrialName"]
-        self.SiteName = self.variables_config["SiteName"]
-        self.SiteID = self.variables_config["SiteID"]
-
+        with open(file_name, 'r') as f:
+            config_data = yaml.safe_load(f)
+            
+        variables = config_data.get(variables, {})
+        self.PatientName = variables.get("PatientName")
+        self.ProfileName = variables.get("ProfileName")
+        self.ProjectName = variables.get("ProjectName")
+        self.TrialName = variables.get("TrialName")
+        self.SiteName = variables.get("SiteName")
+        self.SiteID = variables.get("SiteID")
+        
         # Paths to the recipes that are mounted in the digione infrastructure docker compose volumes.
         self.recipe_path = "/recipes/recipe.dicom"
         self.patient_lookup_csv = "/recipes/patient_lookup.csv"
