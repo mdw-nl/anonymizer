@@ -88,20 +88,28 @@ class Anonymizer:
         message_creator.create_message_next_queue(queue, data_folder)
 
     def find_rtstruct_files(self, folder_path):
+        """
+        Find all RTSTRUCT files in a folder and return a list of file paths.
+        """
+        rtstruct_files = []
+
         with os.scandir(folder_path) as entries:
             for entry in entries:
                 if entry.is_file() and entry.name.lower().endswith(".dcm"):
                     try:
                         ds = pydicom.dcmread(entry.path, stop_before_pixels=True)
                         if getattr(ds, "Modality", "") == "RTSTRUCT":
-                            return entry.path 
+                            rtstruct_files.append(entry.path)
                     except Exception:
                         continue
 
-            return None
+        return rtstruct_files
 
-    
     def ROI_normalization(self, folder_path):
+        """
+        Normalize ROI names in all RTSTRUCT files in the folder using the YAML mapping.
+        """
+        
         # Load ROI map from YAML
         with open(self.ROI_normalization_path) as f:
             roi_map = yaml.safe_load(f)
@@ -111,31 +119,31 @@ class Anonymizer:
             for canonical, patterns in roi_map.items()
         }
 
-        rtstruct_path = self.find_rtstruct_files(folder_path)
+        rtstruct_paths = self.find_rtstruct_files(folder_path)
+        if not rtstruct_paths:
+            logging.warning(f"No RTSTRUCT files found in {folder_path}")
+            return 
 
-        if rtstruct_path is None:
-            logging.warning(f"No RTSTRUCT file found in {folder_path}")
-            return
-        
-        ds = pydicom.dcmread(rtstruct_path, stop_before_pixels=True)
+        for rtstruct_path in rtstruct_paths:
+            ds = pydicom.dcmread(rtstruct_path, stop_before_pixels=True)
 
-        for roi in ds.StructureSetROISequence:
-            original_raw = roi.ROIName
-            original = original_raw.strip()
+            for roi in ds.StructureSetROISequence:
+                original_raw = roi.ROIName
+                original = original_raw.strip()
 
-            normalized = None
+                normalized = None
 
-            for canonical, regex_list in compiled_map.items():
-                if any(regex.search(original) for regex in regex_list):
-                    normalized = canonical
-                    break
+                for canonical, regex_list in compiled_map.items():
+                    if any(regex.search(original) for regex in regex_list):
+                        normalized = canonical
+                        break
 
-            if normalized and original_raw != normalized:
-                roi.ROIName = normalized
-            elif normalized is None:
-                logging.warning(f"No ROI map found for '{original_raw}'")
+                if normalized and original_raw != normalized:
+                    roi.ROIName = normalized
+                elif normalized is None:
+                    logging.warning(f"No ROI map found for '{original_raw}' in file {rtstruct_path}")
 
-        ds.save_as(rtstruct_path)
+            ds.save_as(rtstruct_path)
 
         
     def anonymize(self, input_folder, recipe_path, patient_lookup_csv):
