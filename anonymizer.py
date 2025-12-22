@@ -26,7 +26,7 @@ class Anonymizer:
         with open(file_name, 'r') as f:
             config_data = yaml.safe_load(f)
             
-        variables = config_data.get(variables, {})
+        variables = config_data.get("variables", {})
         self.PatientName = variables.get("PatientName")
         self.ProfileName = variables.get("ProfileName")
         self.ProjectName = variables.get("ProjectName")
